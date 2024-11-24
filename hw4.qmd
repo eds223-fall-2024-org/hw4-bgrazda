@@ -1,0 +1,61 @@
+---
+title: "Homework 4"
+format: html
+editor: visual
+---
+
+```{r}
+library(tidyverse)
+library(sf)
+library(terra)
+library(here)
+```
+
+```{r}
+# Import data
+sst_2008 <- terra::rast(here('data', 'average_annual_sst_2008.tif'))
+sst_2009 <- terra::rast(here('data', 'average_annual_sst_2009.tif'))
+sst_2010 <- terra::rast(here('data', 'average_annual_sst_2010.tif'))
+sst_2011 <- terra::rast(here('data', 'average_annual_sst_2011.tif'))
+
+bathymetry <- terra::rast(here('data', 'depth.tif'))
+
+west_coast <- st_read(here('data', 'wc_regions_clean.shp'))
+```
+```{r}
+# Check to make sure CRS matches before changing into stack
+crs(sst_2008) == crs(sst_2009)
+crs(sst_2009) == crs(sst_2010)
+crs(sst_2010) == crs(sst_2011)
+
+# Create a stack of SST rasters
+combined_sst <- c(sst_2008, sst_2009, sst_2010, sst_2011)
+
+# Find the mean of each
+mean_sst <- mean(combined_sst) 
+
+# Convert from kelvins to celsius
+mean_sst_celsius <- mean_sst - 273.15
+  
+# Crop depth to the extent of the average sst
+bathymetry <- crop(bathymetry, mean_sst_celsius)
+```
+```{r}
+
+
+
+
+
+```
+
+
+```{r}
+
+
+```
+
+
+
+
+
+
