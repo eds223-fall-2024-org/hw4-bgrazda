@@ -10,6 +10,7 @@ library(tidyverse)
 library(sf)
 library(terra)
 library(here)
+library(tmap)
 ```
 
 ```{r}
@@ -82,24 +83,61 @@ stacked_bathymetry_sst <- c(bathymetry_resampled, mean_sst_celsius)
 
 ```
 
-## Find suitable locations
+## Find suitable locations for Oysters
 ```{r}
-sst_rcl <- matrix(c(-Inf, 10, 0,
-                    11, 29, 1,
+
+
+sst_rcl <- matrix(c(-Inf, 11, 0,
+                    11, 30, 1,
                     30, Inf, 0),
                   ncol = 3, byrow = TRUE)
-depth_rcl <- matrix(c(-Inf, -1, 0,
+depth_rcl <- matrix(c(-Inf, 0, 0,
                       0, 70, 1,
-                      71, Inf, 0),
+                      70, Inf, 0),
                     ncol = 3, byrow = TRUE)
                     
-reclassify_sst <- classify(stacked_bathymetry_sst, rcl = sst_rcl)  
-reclassify_depth <- classify(stacked_bathymetry_sst, rcl = depth_rcl)
+# reclassify 
+reclassify_sst <- classify(stacked_bathymetry_sst[[2]], rcl = sst_rcl)  
+#values(reclassify_sst) <- as.factor(values(reclassify_sst))
+reclassify_depth <- classify(stacked_bathymetry_sst[[1]], rcl = depth_rcl)
+#values(reclassify_depth) <- as.factor(values(reclassify_depth))
 
-# Raster map algebra 
-sst_depth_reclass_total <- reclassify_depth * reclassify_sst
+# Raster map algebra for 0s and 1s
+sst_depth_reclass_total <- reclassify_sst * reclassify_depth
+#sst_depth_reclass_total <- as.factor(sst_depth_reclass_total)
+
+#levels(sst_depth_reclass_total) <- data.frame(ID = c(0, 1), category = c("Unsuitable", "Suitable"))
+#values(sst_depth_reclass_total) <- as.factor(values(sst_depth_reclass_total))\
 
 plot(sst_depth_reclass_total)
+```
+## Determine the most suitable EEZ for Oysters
+```{r}
+
+if (crs(west_coast) == crs(sst_depth_reclass_total)){
+  print('Coordinate reference systems match!')
+}else{
+  warning('Coordinate reference systems do not match. Transforming now.')
+  west_coast <- st_transform(west_coast, crs = crs(sst_depth_reclass_total))
+  print('West Coast Coordinate Reference System now matches the Oyster raster stack.')
+}
+
+eez_mask <- mask(sst_depth_reclass_total, west_coast)
+
+suitable_locations <- eez_mask == 1
+
+res_x <- res(suitable_locations)[1]
+res_y <- res(suitable_locations)[2]
+
+cell_area <- res_x * res_y
+
+eez_raster <- rasterize()
+plot(suitable_locations)
+```
+
+```{r}
+tm_shape(west_coast) +
+  tm_polygons()
 ```
 
 
