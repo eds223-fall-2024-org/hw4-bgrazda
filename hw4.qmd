@@ -4,6 +4,7 @@ format: html
 editor: visual
 ---
 
+# Import libraries and data
 ```{r}
 library(tidyverse)
 library(sf)
@@ -22,6 +23,7 @@ bathymetry <- terra::rast(here('data', 'depth.tif'))
 
 west_coast <- st_read(here('data', 'wc_regions_clean.shp'))
 ```
+## Process Data
 ```{r}
 # Check to make sure CRS matches before changing into stack
 crs(sst_2008) == crs(sst_2009)
@@ -36,23 +38,70 @@ mean_sst <- mean(combined_sst)
 
 # Convert from kelvins to celsius
 mean_sst_celsius <- mean_sst - 273.15
-  
+
 # Crop depth to the extent of the average sst
-bathymetry <- crop(bathymetry, mean_sst_celsius)
-```
-```{r}
+# bathymetry <- mask(crop(bathymetry, mean_sst_celsius), mean_sst_celsius)
 
-
-
+# Resample the bathymetry resolution to the mean_sst_celsius
+bathymetry_resampled <- resample(bathymetry, mean_sst_celsius, method = 'ngb')
 
 
 ```
-
 
 ```{r}
+if (ext(bathymetry_resampled) == ext(mean_sst_celsius)) {
+  print("The extents are the same.")
+} else {
+  warning("The extents are different.")
+}
 
+# Check if the resolutions match
+if (all(res(bathymetry_resampled) == res(mean_sst_celsius))) {
+  print('Great job! Resolutions match.')
+}else{
+  warning('Resolutions do not match.')
+}
+
+# Check that the CRS match
+if(crs(bathymetry_resampled) == crs(mean_sst_celsius)) {
+  print('Coordinate reference systems match.')
+} else{
+  warning('CRS does not match. Now projecting the resampled bathymetry raster to the mean_sst_celsius CRS.')
+  bathymetry_resampled <- project(bathymetry_resampled, crs(mean_sst_celsius), method = "bilinear")
+  print('CRS now match.')
+}
+
+# Exploratory plots
+plot(bathymetry)
+plot(bathymetry_resampled)
+plot(mean_sst_celsius)
+plot(west_coast)
+
+# Stack both rasters after ensuring they have the same extent, resolution, and CRS
+stacked_bathymetry_sst <- c(bathymetry_resampled, mean_sst_celsius)
 
 ```
+
+## Find suitable locations
+```{r}
+sst_rcl <- matrix(c(-Inf, 10, 0,
+                    11, 29, 1,
+                    30, Inf, 0),
+                  ncol = 3, byrow = TRUE)
+depth_rcl <- matrix(c(-Inf, -1, 0,
+                      0, 70, 1,
+                      71, Inf, 0),
+                    ncol = 3, byrow = TRUE)
+                    
+reclassify_sst <- classify(stacked_bathymetry_sst, rcl = sst_rcl)  
+reclassify_depth <- classify(stacked_bathymetry_sst, rcl = depth_rcl)
+
+# Raster map algebra 
+sst_depth_reclass_total <- reclassify_depth * reclassify_sst
+
+plot(sst_depth_reclass_total)
+```
+
 
 
 
