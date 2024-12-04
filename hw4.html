@@ -170,7 +170,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a><span class="co"># bathymetry &lt;- mask(crop(bathymetry, mean_sst_celsius), mean_sst_celsius)</span></span>
 <span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Resample the bathymetry resolution to the mean_sst_celsius</span></span>
-<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>bathymetry_resampled <span class="ot">&lt;-</span> <span class="fu">resample</span>(bathymetry, mean_sst_celsius, <span class="at">method =</span> <span class="st">'ngb'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>bathymetry_resampled <span class="ot">&lt;-</span> <span class="fu">resample</span>(bathymetry, mean_sst_celsius, <span class="at">method =</span> <span class="st">'near'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 <div class="cell" data-quiet="true">
@@ -383,6 +383,104 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </div>
+<section id="now-i-will-repeat-this-workflow-for-the-dungeness-crab-metacarcinus-magister." class="level5">
+<h5 class="anchored" data-anchor-id="now-i-will-repeat-this-workflow-for-the-dungeness-crab-metacarcinus-magister.">Now, I will repeat this workflow for the Dungeness Crab (<em>Metacarcinus magister</em>).</h5>
+</section>
+</section>
+<section id="create-function-to-find-total-suitable-area-for-dungeness-crab" class="level2">
+<h2 class="anchored" data-anchor-id="create-function-to-find-total-suitable-area-for-dungeness-crab">Create Function to Find Total Suitable Area for Dungeness Crab</h2>
+<div class="cell" data-quiet="true">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Dungeness Crab </span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Create Function </span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>suitable_locations_map <span class="ot">&lt;-</span> <span class="cf">function</span>(min_temp, max_temp, min_depth, max_depth, species){</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Reclassify the depth based on the passed in arguments for depth</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>  species_rcl_depth <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">c</span>(<span class="sc">-</span><span class="cn">Inf</span>, min_depth, <span class="cn">NA</span>,</span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>                           min_depth, max_depth, <span class="dv">1</span>,</span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>                           max_depth, <span class="cn">Inf</span>, <span class="cn">NA</span>),</span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>                         <span class="at">ncol =</span> <span class="dv">3</span>, <span class="at">byrow =</span> <span class="cn">TRUE</span>) </span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a>  depth <span class="ot">&lt;-</span> <span class="fu">classify</span>(bathymetry_resampled, <span class="at">rcl =</span> species_rcl_depth,  <span class="at">include.lowest =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a>   </span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a>  <span class="co"># min and max temp for reclassification</span></span>
+<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a>  species_rcl_sst <span class="ot">&lt;-</span> <span class="fu">matrix</span>(<span class="fu">c</span>(<span class="sc">-</span><span class="cn">Inf</span>, min_temp, <span class="cn">NA</span>,</span>
+<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a>                           min_temp, max_temp, <span class="dv">1</span>,</span>
+<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a>                           max_temp, <span class="cn">Inf</span>, <span class="cn">NA</span>),</span>
+<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a>                         <span class="at">ncol =</span> <span class="dv">3</span>, <span class="at">byrow =</span> <span class="cn">TRUE</span>) </span>
+<span id="cb26-16"><a href="#cb26-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-17"><a href="#cb26-17" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Classify </span></span>
+<span id="cb26-18"><a href="#cb26-18" aria-hidden="true" tabindex="-1"></a> sst <span class="ot">&lt;-</span>  <span class="fu">classify</span>(mean_sst_celsius, <span class="at">rcl =</span> species_rcl_sst,  <span class="at">include.lowest =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb26-19"><a href="#cb26-19" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb26-20"><a href="#cb26-20" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb26-21"><a href="#cb26-21" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb26-22"><a href="#cb26-22" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Raster multiplication to find areas that meet both conditions</span></span>
+<span id="cb26-23"><a href="#cb26-23" aria-hidden="true" tabindex="-1"></a>  total_rcl <span class="ot">&lt;-</span> <span class="fu">lapp</span>(<span class="fu">c</span>(sst, depth), <span class="at">fun =</span> <span class="st">'*'</span>)</span>
+<span id="cb26-24"><a href="#cb26-24" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb26-25"><a href="#cb26-25" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Count the number of raster cells for area</span></span>
+<span id="cb26-26"><a href="#cb26-26" aria-hidden="true" tabindex="-1"></a>  suitable_mask <span class="ot">&lt;-</span> <span class="fu">cellSize</span>(<span class="at">x =</span> total_rcl, <span class="co"># area of cells</span></span>
+<span id="cb26-27"><a href="#cb26-27" aria-hidden="true" tabindex="-1"></a>                              <span class="at">unit =</span> <span class="st">'km'</span>,</span>
+<span id="cb26-28"><a href="#cb26-28" aria-hidden="true" tabindex="-1"></a>                              <span class="at">transform =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb26-29"><a href="#cb26-29" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb26-30"><a href="#cb26-30" aria-hidden="true" tabindex="-1"></a>  <span class="co"># rasterize the west coast sf object with the mask</span></span>
+<span id="cb26-31"><a href="#cb26-31" aria-hidden="true" tabindex="-1"></a>  eez_rasterized <span class="ot">&lt;-</span> <span class="fu">rasterize</span>(<span class="at">x =</span> west_coast,</span>
+<span id="cb26-32"><a href="#cb26-32" aria-hidden="true" tabindex="-1"></a>                        <span class="at">y =</span> suitable_mask,</span>
+<span id="cb26-33"><a href="#cb26-33" aria-hidden="true" tabindex="-1"></a>                        <span class="at">field =</span> <span class="st">'rgn'</span>,</span>
+<span id="cb26-34"><a href="#cb26-34" aria-hidden="true" tabindex="-1"></a>                        <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb26-35"><a href="#cb26-35" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb26-36"><a href="#cb26-36" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Sum up the zones by area using the mask and raster</span></span>
+<span id="cb26-37"><a href="#cb26-37" aria-hidden="true" tabindex="-1"></a>  zones <span class="ot">&lt;-</span> <span class="fu">zonal</span>(<span class="at">x =</span> suitable_mask,</span>
+<span id="cb26-38"><a href="#cb26-38" aria-hidden="true" tabindex="-1"></a>                 <span class="at">z =</span> eez_rasterized,</span>
+<span id="cb26-39"><a href="#cb26-39" aria-hidden="true" tabindex="-1"></a>                 <span class="at">fun =</span> <span class="st">"sum"</span>,</span>
+<span id="cb26-40"><a href="#cb26-40" aria-hidden="true" tabindex="-1"></a>                 <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb26-41"><a href="#cb26-41" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Join both </span></span>
+<span id="cb26-42"><a href="#cb26-42" aria-hidden="true" tabindex="-1"></a>  join_area <span class="ot">&lt;-</span> <span class="fu">left_join</span>(west_coast, zones, <span class="at">by =</span> <span class="fu">join_by</span>(rgn)) </span>
+<span id="cb26-43"><a href="#cb26-43" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Using species argument, initialize string object for title</span></span>
+<span id="cb26-44"><a href="#cb26-44" aria-hidden="true" tabindex="-1"></a>  species_string <span class="ot">&lt;-</span> stringr<span class="sc">::</span><span class="fu">str_glue</span>(<span class="st">'Total Suitable Area for {species}</span></span>
+<span id="cb26-45"><a href="#cb26-45" aria-hidden="true" tabindex="-1"></a><span class="st">                                      Aquaculture Off the West Coast'</span>)</span>
+<span id="cb26-46"><a href="#cb26-46" aria-hidden="true" tabindex="-1"></a>  <span class="do">## GGSpatial plot</span></span>
+<span id="cb26-47"><a href="#cb26-47" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>() <span class="sc">+</span></span>
+<span id="cb26-48"><a href="#cb26-48" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_sf</span>(<span class="at">data =</span> join_area, <span class="fu">aes</span>(<span class="at">fill =</span> area)) <span class="sc">+</span></span>
+<span id="cb26-49"><a href="#cb26-49" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_distiller</span>(<span class="at">palette =</span> <span class="st">"Reds"</span>,</span>
+<span id="cb26-50"><a href="#cb26-50" aria-hidden="true" tabindex="-1"></a>                       <span class="at">direction =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb26-51"><a href="#cb26-51" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_sf</span>() <span class="sc">+</span></span>
+<span id="cb26-52"><a href="#cb26-52" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb26-53"><a href="#cb26-53" aria-hidden="true" tabindex="-1"></a>   <span class="fu">labs</span>(<span class="at">title =</span> species_string,</span>
+<span id="cb26-54"><a href="#cb26-54" aria-hidden="true" tabindex="-1"></a>        <span class="at">x =</span> <span class="st">'Longitude'</span>,</span>
+<span id="cb26-55"><a href="#cb26-55" aria-hidden="true" tabindex="-1"></a>        <span class="at">y=</span> <span class="st">'Latitude'</span>,</span>
+<span id="cb26-56"><a href="#cb26-56" aria-hidden="true" tabindex="-1"></a>        <span class="at">fill =</span> <span class="fu">bquote</span>(<span class="st">"Suitable Area (km"</span><span class="sc">^</span>{<span class="dv">2</span>}<span class="sc">~</span><span class="st">")"</span> )) <span class="sc">+</span></span>
+<span id="cb26-57"><a href="#cb26-57" aria-hidden="true" tabindex="-1"></a>   <span class="fu">annotation_north_arrow</span>(<span class="at">location =</span> <span class="st">"tr"</span>,</span>
+<span id="cb26-58"><a href="#cb26-58" aria-hidden="true" tabindex="-1"></a>                         <span class="at">which_north =</span> <span class="st">"true"</span>,</span>
+<span id="cb26-59"><a href="#cb26-59" aria-hidden="true" tabindex="-1"></a>                         <span class="at">height =</span> <span class="fu">unit</span>(<span class="fl">0.8</span>, <span class="st">"cm"</span>),</span>
+<span id="cb26-60"><a href="#cb26-60" aria-hidden="true" tabindex="-1"></a>                         <span class="at">width =</span> <span class="fu">unit</span>(<span class="fl">0.6</span>, <span class="st">"cm"</span>)) <span class="sc">+</span></span>
+<span id="cb26-61"><a href="#cb26-61" aria-hidden="true" tabindex="-1"></a>   <span class="fu">annotation_scale</span>(<span class="at">location =</span> <span class="st">'bl'</span>,</span>
+<span id="cb26-62"><a href="#cb26-62" aria-hidden="true" tabindex="-1"></a>                    <span class="at">style =</span> <span class="st">'bar'</span>,</span>
+<span id="cb26-63"><a href="#cb26-63" aria-hidden="true" tabindex="-1"></a>                    <span class="at">width_hint =</span> .<span class="dv">35</span>) <span class="sc">+</span></span>
+<span id="cb26-64"><a href="#cb26-64" aria-hidden="true" tabindex="-1"></a>   <span class="fu">scale_x_continuous</span>(<span class="at">breaks =</span> <span class="fu">seq</span>(<span class="sc">-</span><span class="dv">180</span>, <span class="dv">180</span>, <span class="at">by =</span> <span class="dv">5</span>))</span>
+<span id="cb26-65"><a href="#cb26-65" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-66"><a href="#cb26-66" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb26-67"><a href="#cb26-67" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb26-68"><a href="#cb26-68" aria-hidden="true" tabindex="-1"></a><span class="co"># Pass in arguments for a given species </span></span>
+<span id="cb26-69"><a href="#cb26-69" aria-hidden="true" tabindex="-1"></a><span class="fu">suitable_locations_map</span>(<span class="at">min_temp =</span> <span class="dv">3</span>, <span class="at">max_temp =</span> <span class="dv">19</span>, <span class="at">min_depth =</span> <span class="dv">0</span>, <span class="at">max_depth =</span> <span class="dv">360</span>, <span class="at">species =</span> <span class="st">'Dungeness Crab'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="hw4_files/figure-html/unnamed-chunk-8-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="summary" class="level2">
+<h2 class="anchored" data-anchor-id="summary">Summary</h2>
+<p>Looking at both of these maps of potential areas for aquaculture, there seems to be potential for the Dungeness Crab and Oysters to be harvested sustainably for aquaculture. The Dungeneess Crab’s native range is more north, and it has a greater range of depth and temperature, however there are overlapping regions for both species. Oyster Aquaculture may occur primarily in southern California, where the temperature and depth conditions are met.</p>
+</section>
+<section id="references" class="level2">
+<h2 class="anchored" data-anchor-id="references">References</h2>
+<p>“Sea Surface Temperature Data”, “NOAA Coral Reef Watch. 2019, updated daily. NOAA Coral Reef Watch Version 3.1 Daily 5km Satellite Regional Virtual Station Time Series Data. College Park, Maryland, USA: NOAA Coral Reef Watch. Data set accessed 2024-11-20 at https://coralreefwatch.noaa.gov/product/vs/data.php.”, “<a href="https://coralreefwatch.noaa.gov/product/5km/index_5km_ssta.php">NOAA Coral Reef Watch</a>”</p>
+<p>“Bathymetry Data”, “GEBCO Compilation Group (2022) GEBCO_2022 Grid (doi:10.5285/e0f0bb80-ab44-2739-e053-6c86abc0289c)”, “<a href="https://www.gebco.net/data_and_products/gridded_bathymetry_data/#area">GEBCO</a>”</p>
+<p>“Exclusive Economic Zones”, “Flanders Marine Institute (2024): MarineRegions.org. Available online at www.marineregions.org. Consulted on 2024-11-30.”, “<a href="https://www.marineregions.org/eez.php">Marine Regions</a>”</p>
+<p>“Sea Life Base Aquaculture Data”, “Palomares, M.L.D. and D. Pauly. Editors. 2024. SeaLifeBase. World Wide Web electronic publication. www.sealifebase.org, version (08/2024).”, “<a href="https://www.sealifebase.ca/search.php">Sea Life Base</a>”</p>
 </section>
 </section>
 
