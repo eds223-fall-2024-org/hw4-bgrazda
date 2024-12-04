@@ -211,22 +211,23 @@ suitable_locations_map <- function(min_temp, max_temp, min_depth, max_depth, spe
                            min_depth, max_depth, 1,
                            max_depth, Inf, NA),
                          ncol = 3, byrow = TRUE) 
-  depth <- classify(bathymetry_resampled, rcl = species_rcl_depth,  include.lowest = TRUE)
+  
    
   # min and max temp for reclassification
   species_rcl_sst <- matrix(c(-Inf, min_temp, NA,
                            min_temp, max_temp, 1,
                            max_temp, Inf, NA),
                          ncol = 3, byrow = TRUE) 
+  mean_sst_celsius[mean_sst_celsius[] < min_temp | mean_sst_celsius[] > max_temp] <- NA
+  bathymetry_resampled[bathymetry_resampled[] < min_depth | bathymetry_resampled[] > max_depth] <- NA
 
   # Classify 
+  depth <- classify(bathymetry_resampled, rcl = species_rcl_depth,  include.lowest = TRUE)
  sst <-  classify(mean_sst_celsius, rcl = species_rcl_sst,  include.lowest = TRUE)
-  
-  
   
   # Raster multiplication to find areas that meet both conditions
   total_rcl <- lapp(c(sst, depth), fun = '*')
-  
+
   # Count the number of raster cells for area
   suitable_mask <- cellSize(x = total_rcl, # area of cells
                               unit = 'km',
@@ -244,15 +245,31 @@ suitable_locations_map <- function(min_temp, max_temp, min_depth, max_depth, spe
                  fun = "sum",
                  na.rm = TRUE)
   # Join both 
-  join_area <- left_join(west_coast, zones, by = join_by(rgn)) 
+  join_area <- left_join(west_coast, zones, by = join_by(rgn))
+  
+  # Define northern and southern extents
+north_extent <- raster::extent(-180, 180, 40, 90) # Adjust latitude as needed
+south_extent <- raster::extent(-180, 180, -90, 40)
+
+# Crop rasters
+north_raster <- crop(total_rcl, north_extent)
+south_raster <- crop(total_rcl, south_extent)
+
+# Calculate suitable cell counts
+north_suitable <- sum(values(north_raster) == 1, na.rm = TRUE)
+south_suitable <- sum(values(south_raster) == 1, na.rm = TRUE)
+
+print(paste("Northern Suitable Cells:", north_suitable))
+print(paste("Southern Suitable Cells:", south_suitable))
+
+
   # Using species argument, initialize string object for title
   species_string <- stringr::str_glue('Total Suitable Area for {species}
                                       Aquaculture Off the West Coast')
   ## GGSpatial plot
 ggplot() +
   geom_sf(data = join_area, aes(fill = area)) +
-  scale_fill_distiller(palette = "Reds",
-                       direction = 1) +
+ scale_fill_distiller(palette = "Reds", direction = 1, limits = c(0, max(join_area$area))) +
   coord_sf() +
     theme_minimal() +
    labs(title = species_string,
@@ -278,7 +295,7 @@ suitable_locations_map(min_temp = 3, max_temp = 19, min_depth = 0, max_depth = 3
 
 
 ## Summary
-Looking at both of these maps of potential areas for aquaculture, there seems to be potential for the Dungeness Crab and Oysters to be harvested sustainably for aquaculture. The Dungeneess Crab's native range is more north, and it has a greater range of depth and temperature, however there are overlapping regions for both species. Oyster Aquaculture may occur primarily in southern California, where the temperature and depth conditions are met. 
+Looking at both of these maps of potential areas for aquaculture, there seems to be potential for the Dungeness Crab and Oysters to be harvested sustainably for aquaculture. The Dungeneess Crab's native range is more north as there are more suitable cells in the North, and it has a greater range of depth and temperature, however there are overlapping regions for both species. Oyster Aquaculture may occur primarily in southern California, where the temperature and depth conditions are met. 
 
 ## References
 
