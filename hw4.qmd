@@ -108,9 +108,9 @@ sst_rcl <- matrix(c(-Inf, 11, 0,
                     30, Inf, 0),
                   ncol = 3, byrow = TRUE)
 # Depth conditions for oysters
-depth_rcl <- matrix(c(-Inf, 0, 0,
-                      0, 70, 1,
-                      70, Inf, 0),
+depth_rcl <- matrix(c(-Inf, -70, 0,
+                      -70, 0, 1,
+                      0, Inf, 0),
                     ncol = 3, byrow = TRUE)
                     
 # reclassify 
@@ -207,9 +207,9 @@ ggplot() +
 # Create Function 
 suitable_locations_map <- function(min_temp, max_temp, min_depth, max_depth, species){
   # Reclassify the depth based on the passed in arguments for depth
-  species_rcl_depth <- matrix(c(-Inf, min_depth, NA,
-                           min_depth, max_depth, 1,
-                           max_depth, Inf, NA),
+  species_rcl_depth <- matrix(c(-Inf, -max_depth, NA,
+                           -max_depth, -min_depth, 1,
+                           -min_depth, Inf, NA),
                          ncol = 3, byrow = TRUE) 
   
    
@@ -218,13 +218,14 @@ suitable_locations_map <- function(min_temp, max_temp, min_depth, max_depth, spe
                            min_temp, max_temp, 1,
                            max_temp, Inf, NA),
                          ncol = 3, byrow = TRUE) 
-  mean_sst_celsius[mean_sst_celsius[] < min_temp | mean_sst_celsius[] > max_temp] <- NA
-  bathymetry_resampled[bathymetry_resampled[] < min_depth | bathymetry_resampled[] > max_depth] <- NA
+  # mean_sst_celsius[mean_sst_celsius[] < min_temp | mean_sst_celsius[] > max_temp] <- NA
+  # bathymetry_resampled[bathymetry_resampled[] > min_depth | bathymetry_resampled[] < max_depth] <- NA
 
   # Classify 
   depth <- classify(bathymetry_resampled, rcl = species_rcl_depth,  include.lowest = TRUE)
+  plot(depth, main = stringr::str_glue('Locations Meeting Depth Conditions for {species}'))
  sst <-  classify(mean_sst_celsius, rcl = species_rcl_sst,  include.lowest = TRUE)
-  
+    plot(sst, main = stringr::str_glue('Locations Meeting SST Conditions for {species}'))
   # Raster multiplication to find areas that meet both conditions
   total_rcl <- lapp(c(sst, depth), fun = '*')
 
@@ -267,9 +268,9 @@ print(paste("Southern Suitable Cells:", south_suitable))
   species_string <- stringr::str_glue('Total Suitable Area for {species}
                                       Aquaculture Off the West Coast')
   ## GGSpatial plot
-ggplot() +
-  geom_sf(data = join_area, aes(fill = area)) +
- scale_fill_distiller(palette = "Reds", direction = 1, limits = c(0, max(join_area$area))) +
+ggplot(data = join_area, aes(fill = area_km2)) +
+  geom_sf() +
+ scale_fill_distiller(palette = "Reds", direction = 1, limits = c(0, max(join_area$area_km2))) +
   coord_sf() +
     theme_minimal() +
    labs(title = species_string,
